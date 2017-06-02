@@ -1,11 +1,14 @@
 package com.example.crahul.geotrack;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -115,8 +118,11 @@ public class PunchActivity extends AppCompatActivity {
         // Camera
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         startActivityForResult(cameraIntent, CAMERA_REQUEST);
+        String MyPREFERENCES = "MyPrefs" ;
+        SharedPreferences prefs = getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
+        int user_id = prefs.getInt("user_id",0);
 
-        values.put(GeoTrackDBContract.Attendance.COLUMN_USER_ID, "1");
+        values.put(GeoTrackDBContract.Attendance.COLUMN_USER_ID, Integer.toString(user_id));
         values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LAT, Double.toString(latitude));
         values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LONG, Double.toString(longitude));
         values.put(GeoTrackDBContract.Attendance.COLUMN_CREATED_AT, currentDateTimeString);
