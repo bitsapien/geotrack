@@ -104,8 +104,8 @@ public class PunchActivity extends AppCompatActivity {
 
 
         values.put(GeoTrackDBContract.Attendance.COLUMN_USER_ID, "1");
-        values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LAT, "1.2");
-        values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LONG, "1.3");
+        values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LAT, Double.toString(latitude));
+        values.put(GeoTrackDBContract.Attendance.COLUMN_GEO_LONG, Double.toString(longitude));
         values.put(GeoTrackDBContract.Attendance.COLUMN_CREATED_AT, currentDateTimeString);
 
 
