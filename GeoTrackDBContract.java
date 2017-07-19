@@ -17,6 +17,7 @@ public final class GeoTrackDBContract {
         public static final String COLUMN_GEO_LONG = "geo_long";
         public static final String COLUMN_PHOTO = "photo";
         public static final String COLUMN_CREATED_AT = "created_at";
+        public static final String COLUMN_UPLOADED = "uploaded";
 
         public static final String CREATE_TABLE = "CREATE TABLE IF NOT EXISTS " +
                 TABLE_NAME + " (" +
@@ -24,6 +25,7 @@ public final class GeoTrackDBContract {
                 COLUMN_USER_ID + " INTEGER, " +
                 COLUMN_PHOTO + " BLOB, " +
                 COLUMN_CREATED_AT + " TEXT, " +
+                COLUMN_UPLOADED + " INTEGER DEFAULT 0, " +
                 COLUMN_GEO_LAT + " REAL, " +
                 COLUMN_GEO_LONG + " REAL" + ")";
 

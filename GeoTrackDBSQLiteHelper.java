@@ -26,4 +26,7 @@ public class GeoTrackDBSQLiteHelper extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + GeoTrackDBContract.Attendance.TABLE_NAME);
         onCreate(sqLiteDatabase);
     }
+    public void getAll(){
+
+    }
 }

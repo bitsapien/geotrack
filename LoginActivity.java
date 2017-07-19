@@ -33,8 +33,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.koushikdutta.async.future.FutureCallback;
-import com.koushikdutta.ion.Ion;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -270,25 +268,22 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             mEmail = email;
             mPassword = password;
             authenticated = false;
-            Ion.with(getApplicationContext())
-                    .load("http://192.168.0.187:4000/login")
-                    .setBodyParameter("identifier", "own")
-                    .setBodyParameter("email", mEmail)
-                    .setBodyParameter("password", mPassword)
-                    .asString()
-                    .setCallback(new FutureCallback<String>() {
-                        @Override
-                        public void onCompleted(Exception e, String result) {
-                            // Result
-                            try {
-                                mAuthTask = null;
-                                showProgress(false);
-                                JSONObject json = new JSONObject(result);    // Converts the string "result" to a JSONObject
-                                authenticated = json.getBoolean("authenticated"); // Get the string "result" inside the Json-object
-                                System.out.println("auth::"+Boolean.toString(authenticated));
-                                if (authenticated){ // Checks if the "result"-string is equals to "ok"
+            String loginUrl = getString(R.string.remote_address)+"/login";
+            ArrayList<String> params=new ArrayList<>();
+            ArrayList<String> values=new ArrayList<>();
+            params.add("email");
+            values.add(mEmail);
+            params.add("password");
+            values.add(mPassword);
+            new BackgroundTaskPost(loginUrl, params, values, new BackgroundTaskPost.AsyncResponse() {
+                @Override
+                public void processFinish(String output) {
+                    try {
+                        JSONObject result = new JSONObject(output);
+                        authenticated = result.optBoolean("authenticated");
+                        if (authenticated){ // Checks if the "result"-string is equals to "ok"
                                     // Result is "OK"
-                                    int user_id = json.getInt("user_id"); // Get the int user_id
+                                    int user_id = result.getInt("user_id"); // Get the int user_id
                                     SharedPreferences sharedpreferences = getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
                                     SharedPreferences.Editor editor = sharedpreferences.edit();
                                     editor.putInt("user_id", user_id);
@@ -299,12 +294,47 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                     mPasswordView.setError(getString(R.string.error_incorrect_password));
                                     mPasswordView.requestFocus();
                                 }
-                            } catch (JSONException ex){
-                                // This method will run if something goes wrong with the json, like a typo to the json-key or a broken JSON.
-//                                e.printStackrace();
-                            }
-                        }
-                    });
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }).execute();
+//            Ion.with(getApplicationContext())
+//                    .load(getString(R.string.remote_address)+"/login")
+//                    .setBodyParameter("identifier", "own")
+//                    .setBodyParameter("email", mEmail)
+//                    .setBodyParameter("password", mPassword)
+//                    .asString()
+//                    .setCallback(new FutureCallback<String>() {
+//                        @Override
+//                        public void onCompleted(Exception e, String result) {
+//                            // Result
+//                            try {
+//                                mAuthTask = null;
+//                                showProgress(false);
+//                                JSONObject json = new JSONObject(result);    // Converts the string "result" to a JSONObject
+//                                authenticated = json.getBoolean("authenticated"); // Get the string "result" inside the Json-object
+//                                System.out.println("auth::"+Boolean.toString(authenticated));
+//                                if (authenticated){ // Checks if the "result"-string is equals to "ok"
+//                                    // Result is "OK"
+//                                    int user_id = json.getInt("user_id"); // Get the int user_id
+//                                    SharedPreferences sharedpreferences = getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
+//                                    SharedPreferences.Editor editor = sharedpreferences.edit();
+//                                    editor.putInt("user_id", user_id);
+//                                    editor.commit();
+//                                    System.out.println("IN!!");
+//                                    switchToDashboard();
+//                                } else {
+//                                    mPasswordView.setError(getString(R.string.error_incorrect_password));
+//                                    mPasswordView.requestFocus();
+//                                }
+//                            } catch (JSONException ex){
+//                                // This method will run if something goes wrong with the json, like a typo to the json-key or a broken JSON.
+////                                e.printStackrace();
+//                            }
+//                        }
+//                    });
         }
 
 
