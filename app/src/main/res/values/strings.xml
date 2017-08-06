@@ -17,5 +17,5 @@
     <string name="punch_out_attendance">Punch Out</string>
     <string name="my_preferences">MyPrefs</string>
     <string name="sync_attendance">Sync</string>
-    <string name="remote_address">http://lmu.elitmus.biz/api/v1</string>
+    <string name="remote_address">http://52.66.190.222/api/v1</string>
 </resources>

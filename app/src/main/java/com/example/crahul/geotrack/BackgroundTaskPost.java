@@ -100,8 +100,8 @@ class BackgroundTaskPost extends AsyncTask<Void, Void, Boolean> {
             System.out.println(url);
             URL Url = new URL(url);
             URLConnection conn = Url.openConnection();
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
 
             conn.setDoOutput(true);
             OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());

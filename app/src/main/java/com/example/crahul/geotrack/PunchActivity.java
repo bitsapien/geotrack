@@ -53,13 +53,15 @@ public class PunchActivity extends AppCompatActivity {
     public NetworkChangeReceiver receiver;
     Boolean network_broadcast = true;
     public Button punchButton;
+    SharedPreferences sharedpreferences;
     String[] weeks= new String[]{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sharedpreferences = getSharedPreferences(getResources().getString(R.string.my_preferences), Context.MODE_PRIVATE);
         setContentView(R.layout.activity_punch);
         punchButton = (Button) findViewById(R.id.punch_in);
-
+        switchPunchButton();
         String[] permissions = new String[]{Manifest.permission.CAMERA,
                 Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE};
@@ -90,6 +92,7 @@ public class PunchActivity extends AppCompatActivity {
             public void onClick(View v) {
                 // Perform action on click
                 int punch_state = decidePunchState();
+                switchPunchButton();
                 saveToDB(punch_state);
                 showDBData();
             }
@@ -129,7 +132,6 @@ public class PunchActivity extends AppCompatActivity {
     }
 
     private int decidePunchState() {
-        SharedPreferences sharedpreferences = getSharedPreferences(getResources().getString(R.string.my_preferences), Context.MODE_PRIVATE);
         int punch_state = sharedpreferences.getInt("punch_state", 0);
         SharedPreferences.Editor editor = sharedpreferences.edit();
         if(punch_state == 0) {
@@ -138,19 +140,21 @@ public class PunchActivity extends AppCompatActivity {
         else {
             punch_state = 0;
         }
-        switchPunchButton(punch_state);
+
         editor.putInt("punch_state", punch_state);
+
         editor.commit();
+        switchPunchButton();
 
         return punch_state;
-
     }
 
-    private void switchPunchButton(int punch_state){
+    private void switchPunchButton(){
+        int punch_state = sharedpreferences.getInt("punch_state", 0);
         if(punch_state == 1)
-            punchButton.setText(R.string.punch_in_attendance);
-        else
             punchButton.setText(R.string.punch_out_attendance);
+        else
+            punchButton.setText(R.string.punch_in_attendance);
     }
 
     private void saveToRemoteDB() {
@@ -171,10 +175,21 @@ public class PunchActivity extends AppCompatActivity {
         }
 
         cursor.moveToPosition(i);
+
+        final int saved_state = cursor.getInt(
+                cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance.COLUMN_SAVED_STATE)
+        );
+        if(saved_state==1){
+            sendData(cursor, i+1);
+            return;
+        }
         String created_at = cursor.getString(
                 cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance.COLUMN_CREATED_AT)
         );
-        String user_id = cursor.getString(
+        final Long _id = cursor.getLong(
+                cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance._ID)
+        );
+        final String user_id = cursor.getString(
                 cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance.COLUMN_USER_ID)
         );
         String geo_lat = cursor.getString(
@@ -186,11 +201,11 @@ public class PunchActivity extends AppCompatActivity {
         String photo = cursor.getString(
                 cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance.COLUMN_PHOTO)
         );
-        String punch_state = cursor.getString(
+        int punch_flag = cursor.getInt(
                 cursor.getColumnIndexOrThrow(GeoTrackDBContract.Attendance.COLUMN_PUNCH_STATE)
         );
-
-        if(punch_state == "0") {
+        String punch_state;
+        if(punch_flag == 0) {
             punch_state = "punch_out";
         } else {
             punch_state = "punch_in";
@@ -212,13 +227,24 @@ public class PunchActivity extends AppCompatActivity {
         values.add(photo);
         params.add("punch_state");
         values.add(punch_state);
+        Log.e("XXXX", "Punch state being send:"+punch_state);
         new BackgroundTaskPost(getResources().getString(R.string.remote_address) + "/upload", params, values, new BackgroundTaskPost.AsyncResponse() {
             @Override
             public void processFinish(String output) {
+                //update local table with returned flag
+                if(output.contains("true"))
+                {
+                    //success, update in local db
+                    ContentValues values = new ContentValues();
+                    values.put(GeoTrackDBContract.Attendance.COLUMN_SAVED_STATE, 1);
+                    String[] selectionArgs = {Long.toString(_id)};
+                    SQLiteDatabase database = new GeoTrackDBSQLiteHelper(PunchActivity.this).getWritableDatabase();
+                    database.update(GeoTrackDBContract.Attendance.TABLE_NAME,values,GeoTrackDBContract.Attendance._ID+"=?",selectionArgs);
+
+                }
                 sendData(cursor, i+1);
             }
         }).execute();
-
     }
 
     private Cursor showDBData() {
@@ -230,7 +256,8 @@ public class PunchActivity extends AppCompatActivity {
                 GeoTrackDBContract.Attendance.COLUMN_GEO_LONG,
                 GeoTrackDBContract.Attendance.COLUMN_PHOTO,
                 GeoTrackDBContract.Attendance.COLUMN_CREATED_AT,
-                GeoTrackDBContract.Attendance.COLUMN_PUNCH_STATE
+                GeoTrackDBContract.Attendance.COLUMN_PUNCH_STATE,
+                GeoTrackDBContract.Attendance.COLUMN_SAVED_STATE
         };
         Cursor cursor = database.query(
                 GeoTrackDBContract.Attendance.TABLE_NAME,
@@ -284,7 +311,7 @@ public class PunchActivity extends AppCompatActivity {
 
 
         newRowId = database.insert(GeoTrackDBContract.Attendance.TABLE_NAME, null, values);
-
+        Log.e("XXXX", "Punch state saved to local:"+punch_state);
 //        Toast.makeText(this, "The new Row Id is " + newRowId, Toast.LENGTH_LONG).show();
 
 
@@ -303,7 +330,10 @@ public class PunchActivity extends AppCompatActivity {
         if (requestCode == CAMERA_REQUEST) {
             Bitmap photo = (Bitmap) data.getExtras().get("data");
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            Log.e("XXXX1", "width:"+photo.getWidth()+", height:"+photo.getHeight());
             photo.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            Log.e("XXXX2", "width:"+photo.getWidth()+", height:"+photo.getHeight());
+//            photo = scaleDown(photo, )
             byte[] imageByteArray = stream.toByteArray();
             String base64Photo = Base64.encodeToString(imageByteArray, Base64.DEFAULT);
             ContentValues values = new ContentValues();
@@ -346,4 +376,16 @@ public class PunchActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    public static Bitmap scaleDown(Bitmap realImage, float maxImageSize,
+                                   boolean filter) {
+        float ratio = Math.min(
+                (float) maxImageSize / realImage.getWidth(),
+                (float) maxImageSize / realImage.getHeight());
+        int width = Math.round((float) ratio * realImage.getWidth());
+        int height = Math.round((float) ratio * realImage.getHeight());
+
+        Bitmap newBitmap = Bitmap.createScaledBitmap(realImage, width,
+                height, filter);
+        return newBitmap;
+    }
 }
